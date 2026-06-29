@@ -37,17 +37,13 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ message: 'Username already taken' });
     }
 
-    // Create user. The first user ever created gets 'admin' role automatically for easier testing.
-    const userCount = await User.countDocuments({});
-    const role = userCount === 0 ? 'admin' : 'user';
-
     const user = await User.create({
       name,
       username: usernameNormalized,
       email: emailNormalized,
       phone,
       password,
-      role,
+      role: 'user',
     });
 
     if (user) {
