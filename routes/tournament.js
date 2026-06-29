@@ -17,7 +17,9 @@ router.get('/', async (req, res) => {
   if (status) filter.status = status;
 
   try {
-    const tournaments = await Tournament.find(filter).sort({ dateTime: 1 });
+    const tournaments = await Tournament.find(filter)
+      .select('title type dateTime prizePool perKill entryFee map totalSlots status slots.user slots.number createdAt')
+      .sort({ dateTime: 1 });
     res.json(tournaments);
   } catch (error) {
     console.error(error);
@@ -49,7 +51,9 @@ router.get('/my', protect, async (req, res) => {
     if (status) {
       filter.status = status;
     }
-    const tournaments = await Tournament.find(filter).sort({ dateTime: 1 });
+    const tournaments = await Tournament.find(filter)
+      .select('title type dateTime prizePool perKill entryFee map totalSlots status slots.user slots.number createdAt')
+      .sort({ dateTime: 1 });
     res.json(tournaments);
   } catch (error) {
     console.error(error);

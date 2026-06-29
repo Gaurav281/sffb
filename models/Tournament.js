@@ -101,6 +101,10 @@ const tournamentSchema = new mongoose.Schema(
   }
 );
 
+tournamentSchema.index({ status: 1, type: 1 });
+tournamentSchema.index({ "slots.user": 1 });
+tournamentSchema.index({ dateTime: 1 });
+
 const Tournament = mongoose.model('Tournament', tournamentSchema);
 
 export default Tournament;
