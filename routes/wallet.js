@@ -5,6 +5,25 @@ import protect from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Helper to determine credited amount for each pack
+const getCreditAmount = (amount) => {
+  if (amount === 20) return 22;
+  if (amount === 30) return 33;
+  if (amount === 50) return 55;
+  if (amount === 100) return 110;
+  if (amount === 500) return 550;
+  return amount;
+};
+
+// @desc    Get Admin wallet config settings
+// @route   GET /api/wallet/config
+// @access  Private
+router.get('/config', protect, async (req, res) => {
+  res.json({
+    adminUpiId: process.env.ADMIN_UPI_ID || 'battleplay@upi',
+  });
+});
+
 // @desc    Get user's transaction history
 // @route   GET /api/wallet/history
 // @access  Private
@@ -25,7 +44,8 @@ router.post('/deposit', protect, async (req, res) => {
   const { amount, upiTxnId } = req.body;
 
   try {
-    if (!amount || amount <= 0) {
+    const amt = Number(amount);
+    if (!amt || amt <= 0) {
       return res.status(400).json({ message: 'Please enter a valid deposit amount' });
     }
     if (!upiTxnId || upiTxnId.trim() === '') {
@@ -38,13 +58,15 @@ router.post('/deposit', protect, async (req, res) => {
       return res.status(400).json({ message: 'This UPI Transaction ID has already been submitted' });
     }
 
+    const creditAmt = getCreditAmount(amt);
+
     const transaction = await Transaction.create({
       user: req.user._id,
       type: 'deposit',
-      amount,
+      amount: creditAmt,
       status: 'pending',
       upiTxnId: upiTxnId.trim(),
-      description: 'Deposited Money (Pending Admin Approval)',
+      description: `Add Cash Pack ₹${amt} (Get ₹${creditAmt})`,
     });
 
     res.status(201).json({
@@ -64,8 +86,9 @@ router.post('/withdraw', protect, async (req, res) => {
   const { amount, upiId, phone } = req.body;
 
   try {
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ message: 'Please enter a valid withdrawal amount' });
+    const amt = Number(amount);
+    if (!amt || amt < 50) {
+      return res.status(400).json({ message: 'Minimum withdrawal amount is ₹50' });
     }
     if (!upiId && !phone) {
       return res.status(400).json({ message: 'Please enter a UPI ID or Phone Number for receiving payment' });
@@ -74,14 +97,14 @@ router.post('/withdraw', protect, async (req, res) => {
     const user = await User.findById(req.user._id);
 
     // Only winning balance can be withdrawn
-    if (user.wallet.winning < amount) {
+    if (user.wallet.winning < amt) {
       return res.status(400).json({ message: 'Insufficient winning balance for withdrawal' });
     }
 
     // Atomically deduct withdrawal amount from user's winnings to prevent double withdrawals
     const updatedUser = await User.findOneAndUpdate(
-      { _id: req.user._id, 'wallet.winning': { $gte: amount } },
-      { $inc: { 'wallet.winning': -amount } },
+      { _id: req.user._id, 'wallet.winning': { $gte: amt } },
+      { $inc: { 'wallet.winning': -amt } },
       { new: true }
     );
 
@@ -92,7 +115,7 @@ router.post('/withdraw', protect, async (req, res) => {
     const transaction = await Transaction.create({
       user: req.user._id,
       type: 'withdraw',
-      amount,
+      amount: amt,
       status: 'pending',
       upiId: upiId || null,
       phone: phone || null,

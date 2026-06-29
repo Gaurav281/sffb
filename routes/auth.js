@@ -128,4 +128,28 @@ router.get('/profile', protect, async (req, res) => {
   }
 });
 
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+router.put('/profile', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (req.body.name) user.name = req.body.name;
+    if (req.body.phone) user.phone = req.body.phone;
+    if (req.body.ffName !== undefined) user.ffName = req.body.ffName;
+    if (req.body.ffUid !== undefined) user.ffUid = req.body.ffUid;
+
+    const updatedUser = await user.save();
+    const returnedUser = await User.findById(updatedUser._id).select('-password');
+    res.json(returnedUser);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router;

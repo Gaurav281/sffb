@@ -116,6 +116,13 @@ router.post('/:id/join', protect, async (req, res) => {
 
     // Retrieve user and check balance
     const user = await User.findById(req.user._id);
+    
+    if (!user.ffName || !user.ffUid) {
+      user.ffName = ffName.trim();
+      user.ffUid = ffUid.trim();
+      await user.save();
+    }
+
     const totalBalance = user.wallet.deposited + user.wallet.winning;
     const entryFee = tournament.entryFee;
 

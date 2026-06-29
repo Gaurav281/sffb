@@ -7,6 +7,15 @@ import protect from '../middleware/auth.js';
 import admin from '../middleware/admin.js';
 import { checkAndResetDailyRewards } from './rewards.js';
 
+// Helper to parse local datetime-local strings as IST (+05:30)
+const parseIST = (dateStr) => {
+  if (!dateStr) return null;
+  if (dateStr.includes('+') || dateStr.endsWith('Z')) {
+    return new Date(dateStr);
+  }
+  return new Date(`${dateStr}+05:30`);
+};
+
 const router = express.Router();
 
 // Apply admin protection middleware to all routes in this router
@@ -166,7 +175,7 @@ router.post('/tournament', async (req, res) => {
     const tournament = await Tournament.create({
       title,
       type,
-      dateTime,
+      dateTime: parseIST(dateTime),
       prizePool: Number(prizePool) || 0,
       perKill: Number(perKill) || 0,
       entryFee: Number(entryFee) || 0,
@@ -199,7 +208,7 @@ router.put('/tournament/:id', async (req, res) => {
 
     if (title !== undefined) tournament.title = title;
     if (type !== undefined) tournament.type = type;
-    if (dateTime !== undefined) tournament.dateTime = dateTime;
+    if (dateTime !== undefined) tournament.dateTime = parseIST(dateTime);
     if (prizePool !== undefined) tournament.prizePool = Number(prizePool) || 0;
     if (perKill !== undefined) tournament.perKill = Number(perKill) || 0;
     if (entryFee !== undefined) tournament.entryFee = Number(entryFee) || 0;
@@ -240,8 +249,9 @@ router.delete('/tournament/:id', async (req, res) => {
       return res.status(404).json({ message: 'Tournament not found' });
     }
 
-    // Refund registered players if the match was upcoming and entryFee > 0
-    if (tournament.status === 'upcoming' && tournament.entryFee > 0) {
+    // Refund registered players if the match was upcoming, entryFee > 0, and refund is requested
+    const refund = req.query.refund === 'true';
+    if (refund && tournament.status === 'upcoming' && tournament.entryFee > 0) {
       for (const slot of tournament.slots) {
         if (slot.user) {
           const user = await User.findById(slot.user);

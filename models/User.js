@@ -48,6 +48,16 @@ const userSchema = new mongoose.Schema(
       enum: ['user', 'admin'],
       default: 'user',
     },
+    ffName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    ffUid: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     dailyRewards: {
       lastClaimedDate: {
         type: String, // format YYYY-MM-DD
