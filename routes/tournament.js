@@ -60,7 +60,7 @@ router.get('/announcements', async (req, res) => {
 // @access  Private
 router.get('/my', protect, async (req, res) => {
   const { status } = req.query; // Filter by status: upcoming, ongoing, completed
-  
+
   try {
     await updateTournamentStatuses();
     const filter = { "slots.user": req.user._id };
@@ -138,7 +138,7 @@ router.post('/:id/join', protect, async (req, res) => {
 
     // Retrieve user and check balance
     const user = await User.findById(req.user._id);
-    
+
     if (!user.ffName || !user.ffUid) {
       user.ffName = ffName.trim();
       user.ffUid = ffUid.trim();
@@ -239,19 +239,19 @@ const seedDefaultSocialLinks = async () => {
         {
           platform: 'whatsapp',
           displayName: 'WhatsApp Group',
-          url: 'https://wa.me/919999999999',
+          url: 'https://wa.me/+919558782754',
           isActive: true,
         },
         {
           platform: 'instagram',
           displayName: 'Instagram Profile',
-          url: 'https://instagram.com/battleplay',
+          url: 'https://instagram.com/',
           isActive: true,
         },
         {
           platform: 'telegram',
           displayName: 'Telegram Channel',
-          url: 'https://t.me/battleplay',
+          url: 'https://t.me/battleplay_bot',
           isActive: true,
         }
       ]);

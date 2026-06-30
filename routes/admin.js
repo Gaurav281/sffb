@@ -7,6 +7,8 @@ import Quest from '../models/Quest.js';
 import SocialLink from '../models/SocialLink.js';
 import protect from '../middleware/auth.js';
 import admin from '../middleware/admin.js';
+import Notification from '../models/Notification.js';
+import Popup from '../models/Popup.js';
 import { checkAndResetDailyRewards } from './rewards.js';
 
 // Helper to parse local datetime-local strings as IST (+05:30)
@@ -643,6 +645,129 @@ router.delete('/social-link/:id', async (req, res) => {
       return res.status(404).json({ message: 'Social link not found' });
     }
     res.json({ message: 'Social link deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Get all notifications (Admin list)
+// @route   GET /api/admin/notifications
+// @access  Private/Admin
+router.get('/notifications', async (req, res) => {
+  try {
+    const list = await Notification.find().sort({ createdAt: -1 });
+    res.json(list);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Create a new notification
+// @route   POST /api/admin/notification
+// @access  Private/Admin
+router.post('/notification', async (req, res) => {
+  const { title, body } = req.body;
+  try {
+    if (!title || !body) {
+      return res.status(400).json({ message: 'Please specify title and body' });
+    }
+    const item = await Notification.create({ title, body });
+    res.status(201).json(item);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Delete a notification
+// @route   DELETE /api/admin/notification/:id
+// @access  Private/Admin
+router.delete('/notification/:id', async (req, res) => {
+  try {
+    const item = await Notification.findByIdAndDelete(req.params.id);
+    if (!item) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+    res.json({ message: 'Notification deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Get all popups configurations
+// @route   GET /api/admin/popups
+// @access  Private/Admin
+router.get('/popups', async (req, res) => {
+  try {
+    const list = await Popup.find().sort({ createdAt: -1 });
+    res.json(list);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Create a new popup configuration
+// @route   POST /api/admin/popup
+// @access  Private/Admin
+router.post('/popup', async (req, res) => {
+  const { text, buttonText, buttonUrl, isActive } = req.body;
+  try {
+    if (!text) {
+      return res.status(400).json({ message: 'Popup text content is required' });
+    }
+    // If setting active, deactivate others
+    if (isActive !== false) {
+      await Popup.updateMany({}, { isActive: false });
+    }
+    const item = await Popup.create({
+      text,
+      buttonText: buttonText || '',
+      buttonUrl: buttonUrl || '',
+      isActive: isActive !== false,
+    });
+    res.status(201).json(item);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Toggle popup active state
+// @route   PUT /api/admin/popup/:id
+// @access  Private/Admin
+router.put('/popup/:id', async (req, res) => {
+  const { isActive } = req.body;
+  try {
+    const item = await Popup.findById(req.params.id);
+    if (!item) {
+      return res.status(404).json({ message: 'Popup not found' });
+    }
+    if (isActive === true) {
+      await Popup.updateMany({}, { isActive: false });
+    }
+    item.isActive = isActive;
+    await item.save();
+    res.json(item);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Delete a popup configuration
+// @route   DELETE /api/admin/popup/:id
+// @access  Private/Admin
+router.delete('/popup/:id', async (req, res) => {
+  try {
+    const item = await Popup.findByIdAndDelete(req.params.id);
+    if (!item) {
+      return res.status(404).json({ message: 'Popup not found' });
+    }
+    res.json({ message: 'Popup configuration deleted' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

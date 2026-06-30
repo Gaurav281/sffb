@@ -5,7 +5,6 @@ const socialLinkSchema = new mongoose.Schema(
     platform: {
       type: String, // e.g. 'whatsapp', 'instagram', 'telegram'
       required: true,
-      unique: true,
       trim: true,
     },
     url: {
