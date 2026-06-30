@@ -1,6 +1,7 @@
 import express from 'express';
 import User from '../models/User.js';
 import Transaction from '../models/Transaction.js';
+import Quest from '../models/Quest.js';
 import protect from '../middleware/auth.js';
 
 const router = express.Router();
@@ -113,6 +114,60 @@ router.post('/claim', protect, async (req, res) => {
       dailyRewards: user.dailyRewards,
       wallet: user.wallet,
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Seed default quests if empty
+const seedDefaultQuests = async () => {
+  try {
+    const count = await Quest.countDocuments();
+    if (count === 0) {
+      await Quest.create([
+        {
+          key: 'cs',
+          title: 'Clash Squad Master',
+          description: 'Play 10 CS tournaments to claim your cash reward.',
+          prize: 10,
+          target: 10,
+          type: 'cs',
+          isActive: true,
+        },
+        {
+          key: 'br',
+          title: 'Battle Royale Fighter',
+          description: 'Play 5 BR tournaments to claim your cash reward.',
+          prize: 5,
+          target: 5,
+          type: 'br',
+          isActive: true,
+        },
+        {
+          key: 'win',
+          title: 'Victory Royale',
+          description: 'Win 1 tournament of any mode to claim your cash reward.',
+          prize: 15,
+          target: 1,
+          type: 'win',
+          isActive: true,
+        }
+      ]);
+    }
+  } catch (err) {
+    console.error('Error seeding quests:', err);
+  }
+};
+
+// @desc    Get active daily quests list
+// @route   GET /api/rewards/quests
+// @access  Public/Private
+router.get('/quests', async (req, res) => {
+  try {
+    await seedDefaultQuests();
+    const quests = await Quest.find({ isActive: true });
+    res.json(quests);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

@@ -3,6 +3,7 @@ import Tournament from '../models/Tournament.js';
 import User from '../models/User.js';
 import Transaction from '../models/Transaction.js';
 import Announcement from '../models/Announcement.js';
+import SocialLink from '../models/SocialLink.js';
 import protect from '../middleware/auth.js';
 
 const router = express.Router();
@@ -206,6 +207,51 @@ router.post('/:id/join', protect, async (req, res) => {
       tournament: updatedTournament,
       wallet: updatedUser.wallet,
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Seed default social links if empty
+const seedDefaultSocialLinks = async () => {
+  try {
+    const count = await SocialLink.countDocuments();
+    if (count === 0) {
+      await SocialLink.create([
+        {
+          platform: 'whatsapp',
+          displayName: 'WhatsApp Group',
+          url: 'https://wa.me/919999999999',
+          isActive: true,
+        },
+        {
+          platform: 'instagram',
+          displayName: 'Instagram Profile',
+          url: 'https://instagram.com/battleplay',
+          isActive: true,
+        },
+        {
+          platform: 'telegram',
+          displayName: 'Telegram Channel',
+          url: 'https://t.me/battleplay',
+          isActive: true,
+        }
+      ]);
+    }
+  } catch (err) {
+    console.error('Error seeding social links:', err);
+  }
+};
+
+// @desc    Get active social media links
+// @route   GET /api/tournament/social-links
+// @access  Public
+router.get('/social-links', async (req, res) => {
+  try {
+    await seedDefaultSocialLinks();
+    const links = await SocialLink.find({ isActive: true });
+    res.json(links);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

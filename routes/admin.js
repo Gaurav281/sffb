@@ -3,6 +3,8 @@ import User from '../models/User.js';
 import Tournament from '../models/Tournament.js';
 import Transaction from '../models/Transaction.js';
 import Announcement from '../models/Announcement.js';
+import Quest from '../models/Quest.js';
+import SocialLink from '../models/SocialLink.js';
 import protect from '../middleware/auth.js';
 import admin from '../middleware/admin.js';
 import { checkAndResetDailyRewards } from './rewards.js';
@@ -476,6 +478,171 @@ router.get('/users/leaderboard', async (req, res) => {
     // Let's sort by wallet.winning + wallet.deposited (or we can rank by wallet.winning)
     const users = await User.find().select('name username wallet').sort({ 'wallet.winning': -1 }).limit(10);
     res.json(users);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Get all announcements (active and inactive) for admin
+// @route   GET /api/admin/announcements
+// @access  Private/Admin
+router.get('/announcements', async (req, res) => {
+  try {
+    const announcements = await Announcement.find({}).sort({ createdAt: -1 });
+    res.json(announcements);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Get all quests (active and inactive) for admin
+// @route   GET /api/admin/quests
+// @access  Private/Admin
+router.get('/quests', async (req, res) => {
+  try {
+    const quests = await Quest.find({}).sort({ createdAt: -1 });
+    res.json(quests);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Create a daily quest
+// @route   POST /api/admin/quest
+// @access  Private/Admin
+router.post('/quest', async (req, res) => {
+  const { key, title, description, prize, target, type } = req.body;
+  try {
+    if (!key || !title || !description || !prize || !target || !type) {
+      return res.status(400).json({ message: 'Please provide all quest fields' });
+    }
+    const quest = await Quest.create({
+      key,
+      title,
+      description,
+      prize: Number(prize),
+      target: Number(target),
+      type,
+    });
+    res.status(201).json(quest);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Update a daily quest
+// @route   PUT /api/admin/quest/:id
+// @access  Private/Admin
+router.put('/quest/:id', async (req, res) => {
+  const { key, title, description, prize, target, type, isActive } = req.body;
+  try {
+    const quest = await Quest.findById(req.params.id);
+    if (!quest) {
+      return res.status(404).json({ message: 'Quest not found' });
+    }
+    if (key !== undefined) quest.key = key;
+    if (title !== undefined) quest.title = title;
+    if (description !== undefined) quest.description = description;
+    if (prize !== undefined) quest.prize = Number(prize);
+    if (target !== undefined) quest.target = Number(target);
+    if (type !== undefined) quest.type = type;
+    if (isActive !== undefined) quest.isActive = isActive;
+
+    await quest.save();
+    res.json(quest);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Delete a daily quest
+// @route   DELETE /api/admin/quest/:id
+// @access  Private/Admin
+router.delete('/quest/:id', async (req, res) => {
+  try {
+    const quest = await Quest.findByIdAndDelete(req.params.id);
+    if (!quest) {
+      return res.status(404).json({ message: 'Quest not found' });
+    }
+    res.json({ message: 'Quest deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Get all social links (active and inactive) for admin
+// @route   GET /api/admin/social-links
+// @access  Private/Admin
+router.get('/social-links', async (req, res) => {
+  try {
+    const links = await SocialLink.find({}).sort({ createdAt: -1 });
+    res.json(links);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Create/update a social link
+// @route   POST /api/admin/social-link
+// @access  Private/Admin
+router.post('/social-link', async (req, res) => {
+  const { platform, url, displayName } = req.body;
+  try {
+    if (!platform || !url || !displayName) {
+      return res.status(400).json({ message: 'Please provide all platform fields' });
+    }
+    const link = await SocialLink.create({
+      platform,
+      url,
+      displayName,
+    });
+    res.status(201).json(link);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Update a social link
+// @route   PUT /api/admin/social-link/:id
+// @access  Private/Admin
+router.put('/social-link/:id', async (req, res) => {
+  const { platform, url, displayName, isActive } = req.body;
+  try {
+    const link = await SocialLink.findById(req.params.id);
+    if (!link) {
+      return res.status(404).json({ message: 'Social link not found' });
+    }
+    if (platform !== undefined) link.platform = platform;
+    if (url !== undefined) link.url = url;
+    if (displayName !== undefined) link.displayName = displayName;
+    if (isActive !== undefined) link.isActive = isActive;
+
+    await link.save();
+    res.json(link);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Delete a social link
+// @route   DELETE /api/admin/social-link/:id
+// @access  Private/Admin
+router.delete('/social-link/:id', async (req, res) => {
+  try {
+    const link = await SocialLink.findByIdAndDelete(req.params.id);
+    if (!link) {
+      return res.status(404).json({ message: 'Social link not found' });
+    }
+    res.json({ message: 'Social link deleted successfully' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
