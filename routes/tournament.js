@@ -233,6 +233,8 @@ router.post('/:id/join', protect, async (req, res) => {
 // Seed default social links if empty
 const seedDefaultSocialLinks = async () => {
   try {
+    // Drop the unique constraint index in MongoDB to enable duplicate platform link storage
+    await SocialLink.collection.dropIndex('platform_1').catch(() => {});
     const count = await SocialLink.countDocuments();
     if (count === 0) {
       await SocialLink.create([
