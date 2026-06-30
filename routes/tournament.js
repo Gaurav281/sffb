@@ -8,6 +8,19 @@ import protect from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Helper to automatically change status of upcoming tournaments to ongoing if time has passed
+const updateTournamentStatuses = async () => {
+  try {
+    const now = new Date();
+    await Tournament.updateMany(
+      { status: 'upcoming', dateTime: { $lte: now } },
+      { $set: { status: 'ongoing' } }
+    );
+  } catch (err) {
+    console.error('Error updating tournament statuses:', err);
+  }
+};
+
 // @desc    Get all tournaments
 // @route   GET /api/tournament
 // @access  Public
@@ -18,6 +31,7 @@ router.get('/', async (req, res) => {
   if (status) filter.status = status;
 
   try {
+    await updateTournamentStatuses();
     const tournaments = await Tournament.find(filter)
       .select('title type dateTime prizePool perKill entryFee map totalSlots status slots.user slots.number createdAt')
       .sort({ dateTime: 1 });
@@ -48,6 +62,7 @@ router.get('/my', protect, async (req, res) => {
   const { status } = req.query; // Filter by status: upcoming, ongoing, completed
   
   try {
+    await updateTournamentStatuses();
     const filter = { "slots.user": req.user._id };
     if (status) {
       filter.status = status;
@@ -67,6 +82,7 @@ router.get('/my', protect, async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
+    await updateTournamentStatuses();
     const tournament = await Tournament.findById(req.id || req.params.id);
     if (!tournament) {
       return res.status(404).json({ message: 'Tournament not found' });
@@ -93,12 +109,13 @@ router.post('/:id/join', protect, async (req, res) => {
       return res.status(400).json({ message: 'Free Fire nickname and Character UID are required' });
     }
 
+    await updateTournamentStatuses();
     const tournament = await Tournament.findById(tournamentId);
     if (!tournament) {
       return res.status(404).json({ message: 'Tournament not found' });
     }
 
-    if (tournament.status !== 'upcoming') {
+    if (tournament.status !== 'upcoming' || new Date(tournament.dateTime) <= new Date()) {
       return res.status(400).json({ message: 'Tournament has already started or completed' });
     }
 
