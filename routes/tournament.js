@@ -77,6 +77,53 @@ router.get('/my', protect, async (req, res) => {
   }
 });
 
+// Seed default social links if empty
+const seedDefaultSocialLinks = async () => {
+  try {
+    // Drop the unique constraint index in MongoDB to enable duplicate platform link storage
+    await SocialLink.collection.dropIndex('platform_1').catch(() => {});
+    const count = await SocialLink.countDocuments();
+    if (count === 0) {
+      await SocialLink.create([
+        {
+          platform: 'whatsapp',
+          displayName: 'WhatsApp Group',
+          url: 'https://wa.me/+919558782754',
+          isActive: true,
+        },
+        {
+          platform: 'instagram',
+          displayName: 'Instagram Profile',
+          url: 'https://instagram.com/',
+          isActive: true,
+        },
+        {
+          platform: 'telegram',
+          displayName: 'Telegram Channel',
+          url: 'https://t.me/battleplay_bot',
+          isActive: true,
+        }
+      ]);
+    }
+  } catch (err) {
+    console.error('Error seeding social links:', err);
+  }
+};
+
+// @desc    Get active social media links
+// @route   GET /api/tournament/social-links
+// @access  Public
+router.get('/social-links', async (req, res) => {
+  try {
+    await seedDefaultSocialLinks();
+    const links = await SocialLink.find({ isActive: true });
+    res.json(links);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @desc    Get tournament details
 // @route   GET /api/tournament/:id
 // @access  Public
@@ -224,53 +271,6 @@ router.post('/:id/join', protect, async (req, res) => {
       tournament: updatedTournament,
       wallet: updatedUser.wallet,
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Seed default social links if empty
-const seedDefaultSocialLinks = async () => {
-  try {
-    // Drop the unique constraint index in MongoDB to enable duplicate platform link storage
-    await SocialLink.collection.dropIndex('platform_1').catch(() => {});
-    const count = await SocialLink.countDocuments();
-    if (count === 0) {
-      await SocialLink.create([
-        {
-          platform: 'whatsapp',
-          displayName: 'WhatsApp Group',
-          url: 'https://wa.me/+919558782754',
-          isActive: true,
-        },
-        {
-          platform: 'instagram',
-          displayName: 'Instagram Profile',
-          url: 'https://instagram.com/',
-          isActive: true,
-        },
-        {
-          platform: 'telegram',
-          displayName: 'Telegram Channel',
-          url: 'https://t.me/battleplay_bot',
-          isActive: true,
-        }
-      ]);
-    }
-  } catch (err) {
-    console.error('Error seeding social links:', err);
-  }
-};
-
-// @desc    Get active social media links
-// @route   GET /api/tournament/social-links
-// @access  Public
-router.get('/social-links', async (req, res) => {
-  try {
-    await seedDefaultSocialLinks();
-    const links = await SocialLink.find({ isActive: true });
-    res.json(links);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
